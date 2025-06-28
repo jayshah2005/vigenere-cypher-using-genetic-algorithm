@@ -120,8 +120,7 @@ public class Evaluation {
     
         char[] key = ke.toCharArray();
         for(int i = 0; i < key.length; i++) key[i] = (char)(key[i]-97);
-    
-        
+
         int[] charCounts = new int[26];
         for(int i = 0; i < charCounts.length; i++) charCounts[i] = 0;
     

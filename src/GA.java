@@ -1,24 +1,39 @@
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.Arrays;
 import java.util.PriorityQueue;
 import java.util.Random;
 import java.util.Scanner;
 
 public class GA {
 
-    double crossOverRate;
-    double mutationRate;
-    int popSize;    // Size of Population
-    chromosome[] population;    // The population
+    final double elitismPercentage;
+    final double crossOverRate;
+    final double mutationRate;
+    final int popSize;    // Size of Population
+    final int trackMod = 10;
+    final double[] fitnessTracker = new double[10];
+
     int maxLength;  // Max length of the chromosome
     String encryptedText;
+
+    chromosome[] population;    // The population
     chromosome bestCandidate;
-    PriorityQueue<chromosome> eliteCandidates;   // The elite population
-    int generalPopulation;  // Size of population excluding the elite individuals
 
-    GA(double crossOverRate, double mutationRate, int popSize, int maxGenSpan, int k, File file){
+    /**
+     * GA constructor
+     * @param crossOverRate rate of crossover
+     * @param mutationRate rate of mutation
+     * @param popSize population size
+     * @param maxGenSpan maximum number of generation
+     * @param k tournament selection sample size
+     * @param elitismPercentage percentage of elite individuals
+     * @param targetFitness target fitness we are trying to achieve
+     * @param file the file containing the max key length and encrypted text
+     */
+    GA(double crossOverRate, double mutationRate, int popSize, int maxGenSpan, int k, double elitismPercentage, double targetFitness, File file) {
 
-        if(k < 1 || k > 5) throw new Error("k has to be between 1 to 5 for tournament selection");
+        if (k < 1 || k > 5) throw new Error("k has to be between 1 to 5 for tournament selection");
 
         readFile(file);
 
@@ -26,64 +41,134 @@ public class GA {
         this.mutationRate = mutationRate;
         this.popSize = popSize;
         this.bestCandidate = new chromosome(0);
-        this.generalPopulation = (int) (popSize * 0.9);
-        this.eliteCandidates = new PriorityQueue<>(new FitnessComparator());
+        this.elitismPercentage = elitismPercentage;
+
+        int counter = 0;    // To track how many times we have written to fitnessTracker
 
         population = generateInitialPopulation();
-        for(int i = 0; i < maxGenSpan; i++){
+        for (int i = 0; i < maxGenSpan && bestCandidate.fitness > targetFitness; i++) {
             evaluateFitness();
-            System.out.println(bestCandidate.toString() + " " + bestCandidate.getFitness());
-            population = generateNewPopulation(k);
-            uniformCrossover();
-            inversionMutate();
 
-            // Include elitism when generating each new population
-            population[this.popSize - 1] = bestCandidate.copy();
+            if(i % trackMod == 0) {
+                fitnessTracker[counter++] = bestCandidate.getFitness();
+                System.out.println("For Generation " + i + ": \n" + bestCandidate.toString() + " " + bestCandidate.getFitness());
+            }
+
+            population = generateNewPopulation(k);
         }
 
-        System.out.println(Evaluation.decrypt(bestCandidate.toString(), encryptedText));
-        System.out.println(Evaluation.decrypt("this is a super secret answer", encryptedText));
+        evaluateFitness();
 
+        System.out.println("For Generation " + maxGenSpan + ": \n" + bestCandidate.toString() + " " + bestCandidate.getFitness());
     }
 
+    String getAns(){
+        return bestCandidate.toString() + " " + bestCandidate.getFitness();
+    }
+
+    chromosome asciiMutate(chromosome c){
+
+        Random rand = new Random();
+        int index;
+        int change;
+        char newVal;
+        chromosome copy = c.copy();
+
+        if (rand.nextDouble() > mutationRate) return copy;
+
+        do{
+            index = rand.nextInt(maxLength);
+        } while(copy.get(index) == '-');
+
+        change = rand.nextInt(5) - 2;
+        newVal = (char) ('a' + (copy.get(index) - 'a' + change + 26) % 26);
+
+        copy.set(index, newVal);
+
+        return copy;
+    }
 
     /**
-     * Perform inversion mutation on the entire population
+     * Performs inverse mutation on a chromosome
+     *
+     * @param c the chromosome being mutated
+     * @return the mutated chromosome
      */
-    void inversionMutate(){
+    chromosome inversionMutate(chromosome c) {
 
         Random rand = new Random();
         int start;
         int end;
+        chromosome copy = c.copy();
 
-        if(rand.nextDouble() > mutationRate) return;
+        if (rand.nextDouble() > mutationRate) return copy;
 
-        // -1 is used to leave one space for elitism
-        for(int i = 0; i < popSize - 1; i++){
+        start = rand.nextInt(maxLength);
+        end = rand.nextInt(maxLength - start) + start;
 
-            start = rand.nextInt(maxLength);
-            end = rand.nextInt(maxLength - start) + start;
+        copy.invert(start, end);
 
-            population[i].invert(start, end);
-        }
+        return copy;
     }
 
     /**
-     * Perform uniform crossover on the population
+     * Performs uniform crossover
+     *
+     * @param parents the parents selected for uniform crossover
+     * @return a pair of children who underwent uniform crossover
      */
-    void uniformCrossover(){
+    chromosome[] uniformCrossover(chromosome[] parents) {
 
         Random rand = new Random();
         char temp;
-        int i = rand.nextInt(this.maxLength);
-        int j = rand.nextInt(this.maxLength);
+        chromosome[] children = new chromosome[2];
+        children[0] = parents[0].copy();
+        children[1] = parents[1].copy();
 
-        if(rand.nextDouble() > crossOverRate) return;
+        if (rand.nextDouble() > crossOverRate) return children;
 
-        // -1 is used to leave one space for elitism
-        temp = population[i].get(j);
-        population[i].set(j, population[i+1].get(j));
-        population[i+1].set(j, temp);
+        for (int x = 0; x < this.maxLength; x++) {
+
+            // If the mask if 1, swap the two
+            if (rand.nextDouble() < 0.5) {
+                temp = children[0].get(x);
+                children[0].set(x, children[1].get(x));
+                children[1].set(x, temp);
+            }
+        }
+
+        return children;
+    }
+
+    /**
+     * Performs uniform crossover
+     *
+     * @param parents the parents selected for uniform crossover
+     * @return a pair of children who underwent uniform crossover
+     */
+    chromosome[] twoPointCrossover(chromosome[] parents) {
+
+        Random rand = new Random();
+        char temp;
+        chromosome[] children = new chromosome[2];
+        children[0] = parents[0].copy();
+        children[1] = parents[1].copy();
+
+        if (rand.nextDouble() > crossOverRate) return children;
+
+        int start = rand.nextInt(maxLength);
+        int end = rand.nextInt(maxLength - start);
+
+        // Swap the mask where it is one
+        for (int x = start; x < end; x++) {
+
+            temp = children[0].get(x);
+            children[0].set(x, children[1].get(x));
+            children[1].set(x, temp);
+
+        }
+
+        return children;
     }
 
     /**
@@ -91,14 +176,44 @@ public class GA {
      * @return a new population of size popSize
      */
     chromosome[] generateNewPopulation(int k){
-        chromosome[] newPopulation = new chromosome[this.popSize];
+
+        chromosome[] newPopulation = new chromosome[this.popSize + 1];  // +1 is to make sure we do not get an out of bounds error in the for loop
+        int elitePopulationNumber = (int)(elitismPercentage * popSize);
+        chromosome[] parents = new chromosome[2];
+        chromosome[] children;
+
+        addElitism(newPopulation);
 
         // -1 is used to leave one space for elitism
-        for(int i = 0; i < this.popSize - 1; i++){
-            newPopulation[i] = tournamentSelection(k);
+        for(int i = elitePopulationNumber; i < this.popSize; i+=2){
+            parents[0] = tournamentSelection(k);
+            parents[1] = tournamentSelection(k);
+
+            children = twoPointCrossover(parents);
+
+            newPopulation[i] = asciiMutate(children[0]);
+            newPopulation[i+1] = asciiMutate(children[1]);
+
         }
 
-        return newPopulation;
+        return Arrays.copyOf(newPopulation, popSize);
+    }
+
+    /**
+     * Adds elite individuals to new population
+     * @param newPopulation population we are adding to
+     */
+    void addElitism(chromosome[] newPopulation){
+
+        int elitePopulationNumber = (int)(elitismPercentage * popSize);
+
+        chromosome[] sortedPopulation = Arrays.copyOf(population, popSize);
+
+        Arrays.sort(sortedPopulation, new FitnessComparator());
+
+        for(int i = 0; i < elitePopulationNumber; i++){
+            newPopulation[i] = sortedPopulation[i];
+        }
     }
 
     /**
@@ -118,7 +233,7 @@ public class GA {
             if(population[index].getFitness() < best.getFitness()) best = population[index];
         }
 
-        return best;
+        return best.copy();
     }
 
     /**
@@ -236,11 +351,27 @@ public class GA {
 
     public static void main(String[] args) {
 
-        float crossOverRate;
-        float mutationRate;
-        int popSize;
-        File file = new File("/Users/jayshah/Developer/Brock University/COSC 3P71/GA/Assign2_Attachments/Data1.txt");
+//      double crossOverRate;
+//      double mutationRate;
+        int popSize = 300;
+        int maxGenSpan = 100;
+        int k = 2;
+        double elitePercentage = 0.1;
+        double targetFitness = 0.01;
+        File file = new File("/Users/jayshah/Developer/Brock University/COSC 3P71/GA/Assign2_Attachments/Data2.txt");
 
-        new GA(0.9, 0.1, 500, 500, 2, file);
+        double[] mutationRates = {0, 0.1, 0.2, 0.3, 0.4, 0.5};
+        double[] crossoverRates = {0.9, 1};
+
+        GA test;
+        for(double mutationRate : mutationRates){
+            for(double crossOverRate : crossoverRates){
+                // Repeating each run 5 times
+                for(int i = 0; i < 5; i++){
+                    System.out.println("Parameters: \n Crossover Rate: " + crossOverRate + "    Mutation Rate: " + mutationRate);
+                    test = new GA(crossOverRate, mutationRate, popSize, maxGenSpan, k, elitePercentage, targetFitness, file);
+                }
+            }
+        }
     }
 }

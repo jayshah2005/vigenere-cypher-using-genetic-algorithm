@@ -71,7 +71,7 @@ public class chromosome {
      * @return a string version of the chromosome
      */
     public String toString(){
-        return Arrays.toString(key);
+        return new String(key);
     }
 
     /**
