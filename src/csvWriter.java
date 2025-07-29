@@ -3,8 +3,15 @@ import java.io.IOException;
 
 public class csvWriter {
 
+    // Extension we will set to identify different configurations
     static String extention = "Undefined";
 
+    /**
+     * Write to the results file
+     * @param crossoverRate the crossover rate that will be noted along with the observation
+     * @param mutationRate the mutation rate that will be noted along with the observation
+     * @param fitness the fitness that will be noted
+     */
     public static void writeResult(double crossoverRate, double mutationRate, double fitness){
         String filePath = "results" + extention + ".csv";
 
@@ -19,6 +26,12 @@ public class csvWriter {
         }
     }
 
+    /**
+     * Write to the best averages file
+     * @param crossoverRate the crossover rate that will be noted along with the observation
+     * @param mutationRate the mutation rate that will be noted along with the observation
+     * @param fitness the fitness that will be noted
+     */
     public static void writeBestAverages(double crossoverRate, double mutationRate, double fitness){
         String filePath = "bestAverages" + extention + ".csv";
 
@@ -33,6 +46,12 @@ public class csvWriter {
         }
     }
 
+    /**
+     * Write to the averages file
+     * @param crossoverRate the crossover rate that will be noted along with the observation
+     * @param mutationRate the mutation rate that will be noted along with the observation
+     * @param fitness the fitness that will be noted
+     */
     public static void writeAverages(double crossoverRate, double mutationRate, double fitness) {
         String filePath = "averages" + extention + ".csv";
 

@@ -2,6 +2,9 @@ import java.io.File;
 
 public class experiment {
 
+    /**
+     * Constructor for the experiment class. Runs the entire experiment for a given crossover and mutation type
+     */
     public static void run(){
         int popSize = 500;
         int maxGenSpan = 100;
@@ -53,6 +56,12 @@ public class experiment {
         }
     }
 
+    /**
+     * Note the best averages amongst the 5 runs
+     * @param crossoverRate the crossover rate that will be noted along with the observation
+     * @param mutationRate the mutation rate that will be noted along with the observation
+     * @param fitnessScores the fitnessScores that will be averaged out
+     */
     public static void noteBestAverages(double crossoverRate, double mutationRate, double[][] fitnessScores){
         double bestAvgFitness = 0;
         int j;
@@ -64,6 +73,12 @@ public class experiment {
         csvWriter.writeBestAverages(crossoverRate, mutationRate, bestAvgFitness);
     }
 
+    /**
+     * Note the averages every 10 generations amongst the 5 runs
+     * @param crossoverRate the crossover rate that will be noted along with the observation
+     * @param mutationRate the mutation rate that will be noted along with the observation
+     * @param fitnessScores the fitnessScores that will be averaged out
+     */
     public static void noteAverages(double crossoverRate, double mutationRate, double[][] fitnessScores){
         double avgFitness;
         int i = 0;

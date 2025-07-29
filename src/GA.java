@@ -62,10 +62,11 @@ public class GA {
         System.out.println("For Generation " + maxGenSpan + ": \n" + bestCandidate.toString() + " " + bestCandidate.getFitness());
     }
 
-    String getAns(){
-        return bestCandidate.toString() + " " + bestCandidate.getFitness();
-    }
-
+    /**
+     * Changes a random character in the chromosome in a range from -2 to +2.
+     * @param c the chromosome undegoing the mutation
+     * @return a new muatated chromosome
+     */
     chromosome asciiMutate(chromosome c){
 
         Random rand = new Random();
@@ -311,48 +312,8 @@ public class GA {
         return (n < 26) ? (char) ('a' + n) : '-';
     }
 
-    chromosome[] generateSpecializedInitialPopulation(){
-        chromosome[] population = new chromosome[this.popSize];
-
-        for(int i = 0; i < this.popSize; i++){
-            population[i] = generateChromosome(maxLength - i%(maxLength-1));
-        }
-
-        return population;
-    }
-
-    /**
-     * Generates a chromosome with actual length k
-     * @return a chromosome
-     */
-    chromosome generateChromosome(int length){
-        chromosome c = new chromosome(maxLength);
-
-        for(int i = 0; i< length; i++){
-            c.set(i, getRandomLetter());
-        }
-
-        for(int i = length; i < maxLength; i++){
-            c.set(i, '-');
-        }
-
-        return c;
-    }
-
-    /**
-     * generates a random letter from a to z
-     * @return a char from a to z
-     */
-    char getRandomLetter() {
-        Random rand = new Random();
-        int n = rand.nextInt(26);  // 0 to 26
-        return (char) ('a' + n);
-    }
-
     public static void main(String[] args) {
 
-//      double crossOverRate;
-//      double mutationRate;
         int popSize = 300;
         int maxGenSpan = 100;
         int k = 2;

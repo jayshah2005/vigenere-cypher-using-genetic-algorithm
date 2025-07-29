@@ -17,6 +17,11 @@ public class chromosome {
         fitness = Double.POSITIVE_INFINITY;
     }
 
+    /**
+     * Invert the chromosome from start index to end index
+     * @param start the starting index
+     * @param end the ending index
+     */
     void invert(int start, int end){
 
         char temp;
